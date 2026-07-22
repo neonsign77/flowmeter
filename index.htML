@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>High-Precision Flowmeter Leakage Calculator (SCFM & PPM)</title>
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --primary-hover: #1e40af;
+            --accent-color: #0284c7;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            --card-bg: #ffffff;
+            --text-dark: #0f172a;
+            --text-muted: #64748b;
+            --border-color: #e2e8f0;
+            --focus-ring: rgba(2, 132, 199, 0.25);
+            --success-bg: #f0fdf4;
+            --success-border: #bbf7d0;
+            --success-text: #166534;
+            --info-bg: #f0f9ff;
+            --info-border: #bae6fd;
+            --info-text: #0369a1;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 24px;
+            color: var(--text-dark);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 540px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3a8a 0%, #0369a1 100%);
+            color: #ffffff;
+            padding: 28px 32px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 22px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin-bottom: 6px;
+        }
+
+        .header p {
+            font-size: 13px;
+            color: #93c5fd;
+            font-weight: 400;
+        }
+
+        .content {
+            padding: 28px 32px;
+        }
+
+        .formula-card {
+            background: #f8fafc;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px 18px;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .formula {
+            font-family: "Times New Roman", Times, serif;
+            font-style: italic;
+            font-weight: bold;
+            font-size: 16px;
+            color: #334155;
+            letter-spacing: 0.5px;
+        }
+
+        .fixed-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .fixed-item {
+            background: #f1f5f9;
+            padding: 12px 14px;
+            border-radius: 10px;
+            border-left: 4px solid var(--accent-color);
+        }
+
+        .fixed-label {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 2px;
+        }
+
+        .fixed-value {
+            font-size: 14px;
+            font-weight: 700;
+            color: var(--text-dark);
+        }
+
+        .fixed-sub {
+            font-size: 11px;
+            color: #64748b;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 6px;
+        }
+
+        .input-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper input {
+            width: 100%;
+            height: 46px;
+            padding: 0 65px 0 14px;
+            font-size: 15px;
+            font-weight: 500;
+            color: var(--text-dark);
+            background-color: #ffffff;
+            border: 1.5px solid var(--border-color);
+            border-radius: 10px;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        .input-wrapper input:focus {
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 4px var(--focus-ring);
+        }
+
+        .input-wrapper input::placeholder {
+            color: #cbd5e1;
+        }
+
+        .input-wrapper .unit-badge {
+            position: absolute;
+            right: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #94a3b8;
+            pointer-events: none;
+        }
+
+        .btn-calc {
+            width: 100%;
+            height: 50px;
+            background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.25);
+            margin-top: 8px;
+        }
+
+        .btn-calc:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(30, 58, 138, 0.35);
+        }
+
+        .btn-calc:active {
+            transform: translateY(0);
+        }
+
+        .results-container {
+            margin-top: 24px;
+            display: none;
+            animation: fadeIn 0.3s ease-out forwards;
+            gap: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .result-card {
+            background: var(--success-bg);
+            border: 1px solid var(--success-border);
+            border-radius: 14px;
+            padding: 18px;
+            text-align: center;
+        }
+
+        .result-title {
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--success-text);
+            margin-bottom: 6px;
+        }
+
+        .result-value-container {
+            display: flex;
+            justify-content: center;
+            align-items: baseline;
+            gap: 6px;
+        }
+
+        .result-value {
+            font-size: 30px;
+            font-weight: 800;
+            color: #065f46;
+            font-family: 'SF Pro Display', -apple-system, monospace;
+        }
+
+        .result-unit {
+            font-size: 15px;
+            font-weight: 600;
+            color: #047857;
+        }
+
+        .ref-card {
+            background: var(--info-bg);
+            border: 1px solid var(--info-border);
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .ref-info {
+            text-align: left;
+        }
+
+        .ref-title {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--info-text);
+        }
+
+        .ref-sub {
+            font-size: 11px;
+            color: #0284c7;
+        }
+
+        .ref-val {
+            font-size: 20px;
+            font-weight: 800;
+            color: #0369a1;
+            font-family: 'SF Pro Display', -apple-system, monospace;
+        }
+
+        .error-msg {
+            color: #dc2626;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 4px;
+            display: none;
+        }
+
+        .footer {
+            padding: 16px;
+            text-align: center;
+            background: #f8fafc;
+            border-top: 1px solid var(--border-color);
+            font-size: 11px;
+            color: #94a3b8;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>Flowmeter Leakage Calculator</h1>
+        <p>SCFM 입력 기반 보정 누설량(WC) & lb/min 참조 변환기</p>
+    </div>
+
+    <div class="content">
+        <!-- 공식 디스플레이 -->
+        <div class="formula-card">
+            <div class="formula">WC = WM × √[ (PM × TC) / (PC × TM) ]</div>
+            <div style="font-size:11px; color:#64748b; margin-top:4px;">* WM(lb/min) = SCFM × 0.07524</div>
+        </div>
+
+        <!-- 고정 조건 (Calibration Data) -->
+        <div class="fixed-grid">
+            <div class="fixed-item">
+                <div class="fixed-label">Calibrated Pressure (PC)</div>
+                <div class="fixed-value">50.0 psig</div>
+                <div class="fixed-sub">64.696 psia</div>
+            </div>
+            <div class="fixed-item">
+                <div class="fixed-label">Calibrated Temp (TC)</div>
+                <div class="fixed-value">70.0 °F</div>
+                <div class="fixed-sub">529.67 °R</div>
+            </div>
+        </div>
+
+        <!-- 입력 폼 -->
+        <form id="calcForm" onsubmit="event.preventDefault(); calculate();">
+            <div class="form-group">
+                <label for="scfm">SCFM (Standard Cubic Feet / Min)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="scfm" step="any" placeholder="측정 SCFM 유량 입력" required>
+                    <span class="unit-badge">SCFM</span>
+                </div>
+                <div class="error-msg" id="scfm-err">SCFM 유량 값을 올바르게 입력해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="pm">PM (Measured Pressure)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="pm" step="any" placeholder="측정 압력 입력" required>
+                    <span class="unit-badge">psig</span>
+                </div>
+                <div class="error-msg" id="pm-err">압력 값을 올바르게 입력해주세요.</div>
+            </div>
+
+            <div class="form-group">
+                <label for="tm">TM (Measured Temperature)</label>
+                <div class="input-wrapper">
+                    <input type="number" id="tm" step="any" placeholder="측정 온도 입력" required>
+                    <span class="unit-badge">°F</span>
+                </div>
+                <div class="error-msg" id="tm-err">온도 값을 올바르게 입력해주세요 (-459.67°F 이상).</div>
+            </div>
+
+            <button type="submit" class="btn-calc">계산하기 (Calculate)</button>
+        </form>
+
+        <!-- 결과 영역 -->
+        <div class="results-container" id="resultsContainer" style="display: none;">
+            <!-- 메인 결과 : 보정 누설량 WC -->
+            <div class="result-card">
+                <div class="result-title">Corrected Leakage (WC)</div>
+                <div class="result-value-container">
+                    <span class="result-value" id="wcVal">0.0000</span>
+                    <span class="result-unit">lb/min</span>
+                </div>
+            </div>
+
+            <!-- 참조 결과 : lb/min 변환 참조값 -->
+            <div class="ref-card">
+                <div class="ref-info">
+                    <div class="ref-title">참조값: WM (Converted Reading)</div>
+                    <div class="ref-sub">SCFM → lb/min 자동 변환값</div>
+                </div>
+                <div class="ref-val"><span id="wmVal">0.0000</span> <span style="font-size:13px; font-weight:normal;">lb/min</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        Standard Air Density: 0.07524 lb/ft³ @ 70°F & 14.696 psia
+    </div>
+</div>
+
+<script>
+    function calculate() {
+        // Error Messages Reset
+        document.getElementById('scfm-err').style.display = 'none';
+        document.getElementById('pm-err').style.display = 'none';
+        document.getElementById('tm-err').style.display = 'none';
+
+        const scfmInput = document.getElementById('scfm').value.trim();
+        const pmInput = document.getElementById('pm').value.trim();
+        const tmInput = document.getElementById('tm').value.trim();
+
+        let hasError = false;
+
+        if (scfmInput === "" || isNaN(scfmInput)) {
+            document.getElementById('scfm-err').style.display = 'block';
+            hasError = true;
+        }
+        if (pmInput === "" || isNaN(pmInput)) {
+            document.getElementById('pm-err').style.display = 'block';
+            hasError = true;
+        }
+        if (tmInput === "" || isNaN(tmInput) || parseFloat(tmInput) <= -459.67) {
+            document.getElementById('tm-err').style.display = 'block';
+            hasError = true;
+        }
+
+        if (hasError) {
+            document.getElementById('resultsContainer').style.display = 'none';
+            return;
+        }
+
+        const SCFM = parseFloat(scfmInput);
+        const PM_psig = parseFloat(pmInput);
+        const TM_degF = parseFloat(tmInput);
+
+        // 1. SCFM to WM (lb/min) Conversion
+        // Standard Air Density = 0.07524 lb/ft3
+        const WM_converted = SCFM * 0.07524;
+
+        // 2. Fixed Calibration Constants
+        const PC_psia = 50.0 + 14.696; // 64.696 psia
+        const TC_degR = 70.0 + 459.67; // 529.67 °R
+
+        // 3. Measured Absolute Unit Conversion
+        const PM_psia = PM_psig + 14.696;
+        const TM_degR = TM_degF + 459.67;
+
+        if (PM_psia <= 0 || TM_degR <= 0) {
+            alert("절대 압력 및 절대 온도는 0보다 커야 합니다.");
+            return;
+        }
+
+        // 4. Corrected Leakage WC Calculation
+        const term = (PM_psia * TC_degR) / (PC_psia * TM_degR);
+        const WC = WM_converted * Math.sqrt(term);
+
+        // Display Results
+        document.getElementById('wcVal').innerText = WC.toFixed(4);
+        document.getElementById('wmVal').innerText = WM_converted.toFixed(4);
+        document.getElementById('resultsContainer').style.display = 'flex';
+    }
+</script>
+
+</body>
+</html>
